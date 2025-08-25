@@ -3,6 +3,9 @@ pipeline {
 
    tools {
        go 'go-1.21.3'
+       // Add SonarQube Scanner tool - make sure this matches your Jenkins tool configuration
+       // You can configure this in Jenkins Global Tool Configuration
+       sonarQubeScanner 'sonar-scanner'
     }
 
     environment {
@@ -32,7 +35,19 @@ pipeline {
         stage('Run SonarQube Analysis') {
             steps {
                 script {
-                         sh '/usr/local/sonar/bin/sonar-scanner -X -Dsonar.organization=wm-demo -Dsonar.projectKey=wm-demo-hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
+                    // Using withSonarQubeEnv for proper SonarQube integration
+                    withSonarQubeEnv('SonarCloud') { // Make sure 'SonarCloud' matches your Jenkins SonarQube server configuration
+                        // Use the SonarQube scanner tool configured in Jenkins
+                        sh """
+                            sonar-scanner \
+                                -Dsonar.organization=wm-demo \
+                                -Dsonar.projectKey=wm-demo-hello-webapp-golang \
+                                -Dsonar.sources=. \
+                                -Dsonar.host.url=https://sonarcloud.io \
+                                -Dsonar.login=\${SONAR_TOKEN} \
+                                -Dsonar.go.coverage.reportPaths=coverage.out
+                        """
+                    }
                 }
             }
         }
