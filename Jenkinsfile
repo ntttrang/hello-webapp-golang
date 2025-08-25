@@ -35,17 +35,18 @@ pipeline {
         stage('Run SonarQube Analysis') {
             steps {
                 script {
-                    // Using withSonarQubeEnv for proper SonarQube integration
-                    withSonarQubeEnv('SonarCloud') { // Make sure 'SonarCloud' matches your Jenkins SonarQube server configuration
-                        // Use the SonarQube scanner tool configured in Jenkins
+                    // Use withSonarQubeEnv for proper integration with SonarCloud
+                    withSonarQubeEnv('SonarCloud') {
+                        // Get the SonarQube Scanner tool and add it to PATH
+                        def scannerHome = tool 'SonarQubeScanner'
                         sh """
+                            export PATH=\${PATH}:${scannerHome}/bin
                             sonar-scanner \
                                 -Dsonar.organization=wm-demo \
                                 -Dsonar.projectKey=wm-demo-hello-webapp-golang \
                                 -Dsonar.sources=. \
-                                -Dsonar.host.url=https://sonarcloud.io \
-                                -Dsonar.login=\${SONAR_TOKEN} \
-                                -Dsonar.go.coverage.reportPaths=coverage.out
+                                -Dsonar.go.coverage.reportPaths=coverage.out \
+                                -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md
                         """
                     }
                 }
