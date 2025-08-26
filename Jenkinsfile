@@ -41,8 +41,7 @@ pipeline {
                         // Get the SonarQube Scanner tool and add it to PATH
                         def scannerHome = tool 'SonarQubeScanner'
                         sh """
-                            export PATH=\${PATH}:${scannerHome}/bin
-                            sonar-scanner \
+                            export PATH=\${PATH}:${scannerHome}/bin && sonar-scanner \
                                 -Dsonar.organization=wm-demo-hello-webapp-golang \
                                 -Dsonar.projectKey=ntttrang_hello-webapp-golang
                                 -Dsonar.sources=. \
