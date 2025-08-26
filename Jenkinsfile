@@ -58,6 +58,9 @@ pipeline {
         }
 
         stage('Build Docker Image') {
+           agent {
+                label 'docker-agent'  // Use an agent with Docker pre-installed
+           }
            steps {
                script {
                    sh 'docker build -t dab8106/hellogo .'
@@ -66,6 +69,9 @@ pipeline {
        }
 
         stage('Push Docker Image') {
+           agent {
+                label 'docker-agent'  // Use an agent with Docker pre-installed
+           }
            steps {
                script {
                    withCredentials([usernamePassword(credentialsId: 'DOCKER_REGISTRY_CREDENTIALS_ID', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
