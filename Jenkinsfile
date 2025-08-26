@@ -18,6 +18,7 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
+       // GIT_CREDENTIALS = credentials('github-ssh-key') // SSH key for GitHub
     }
 
     stages {
@@ -28,10 +29,12 @@ pipeline {
                     if (params.GIT_TAG == 'latest' || params.GIT_TAG == '' || params.GIT_TAG == null) {
                         // Use default branch when 'latest' is specified
                         git branch: "master",
+                            //credentialsId: 'github-ssh-key',
                             url: 'git@github.com:ntttrang/hello-webapp-golang.git'
                     } else {
                         // Use specific tag or branch
                         git branch: "${params.GIT_TAG}",
+                            //credentialsId: 'github-ssh-key',
                             url: 'git@github.com:ntttrang/hello-webapp-golang.git'
                     }
                 }
