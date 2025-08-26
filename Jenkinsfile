@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
+        //SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
     }
 
     stages {
