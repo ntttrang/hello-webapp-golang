@@ -7,7 +7,6 @@ pipeline {
        // You can configure this in Jenkins Global Tool Configuration
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
        nodejs 'NodeJS-18'
-       dockerTool 'docker'
     }
 
     environment {
@@ -59,17 +58,11 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-           agent {
-               docker {
-                   image 'docker:dind'
-                   args '--privileged'
-               }
-           }
-           steps {
-               script {
-                   sh 'docker build -t dab8106/hellogo .'
-               }
-           }
+            steps {
+                script {
+                    def dockerImage = docker.build("dab8106/hellogo")
+                }
+            }
        }
 
         stage('Push Docker Image') {
