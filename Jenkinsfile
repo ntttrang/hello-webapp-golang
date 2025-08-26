@@ -2,7 +2,7 @@ pipeline {
     agent any
 
    tools {
-       go 'go-1.21.3'
+       go 'go-1.21.4'
        // Add SonarQube Scanner tool - make sure this matches your Jenkins tool configuration
        // You can configure this in Jenkins Global Tool Configuration
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
