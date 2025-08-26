@@ -44,7 +44,7 @@ pipeline {
                     // Use withSonarQubeEnv for proper integration with SonarCloud
                     withSonarQubeEnv('SonarCloud') {
                         // Get the SonarQube Scanner tool and add it to PATH
-                        def scannerHome = tool 'SonarQubeScanner'
+                        def scannerHome = tool 'sonarqube-scanner'
                         sh "export PATH=\${PATH}:${scannerHome}/bin && sonar-scanner -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.go.coverage.reportPaths=coverage.out -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md"
                     }
                 }
