@@ -4,7 +4,7 @@ pipeline {
    tools {
        go 'go-1.21.4'
        'hudson.plugins.sonar.SonarRunnerInstallation' 'sonarqube-scanner'
-       nodejs 'nodejs-18'
+       nodejs 'nodejs-24.6.0'
     }
 
     environment {
