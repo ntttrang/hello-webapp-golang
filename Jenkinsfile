@@ -3,7 +3,10 @@ pipeline {
 
    tools {
        go 'go-1.21.4'
-       nodejs 'nodejs-24.6.0'
+       // Add SonarQube Scanner tool - make sure this matches your Jenkins tool configuration
+       // You can configure this in Jenkins Global Tool Configuration
+       'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
+       nodejs 'Nodejs-18'
     }
 
     environment {
@@ -30,68 +33,18 @@ pipeline {
             }
         }
 
-        stage('Verify Docker') {
-            steps {
-                script {
-                    sh '''
-                        # Check if Docker is available
-                        if ! command -v docker >/dev/null 2>&1; then
-                            echo "Error: Docker is not available. Please ensure Docker is installed and running."
-                            exit 1
-                        fi
-
-                        # Verify Docker is running
-                        if ! docker info >/dev/null 2>&1; then
-                            echo "Error: Docker daemon is not running. Please start Docker service."
-                            exit 1
-                        fi
-
-                        echo "✅ Docker is available and running"
-                    '''
-                }
-            }
-        }
-
-        // stage('Run SonarQube Analysis - Alternative') {
-        //     steps {
-        //         script {
-        //                 sh './sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner -Dsonar.login=${SONAR_TOKEN} -Dsonar.organization=wm-demo -Dsonar.projectKey=wm-demo-hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
-        //         }
-        //     }
-        // }
         stage('Run SonarQube Analysis') {
             steps {
                 script {
-                    // Verify SONAR_TOKEN is available
-                    if (!env.SONAR_TOKEN) {
-                        error("SONAR_TOKEN credential is not available. Please configure it in Jenkins credentials.")
+                    // Use withSonarQubeEnv for proper integration with SonarCloud
+                    withSonarQubeEnv('SonarCloud') {
+                        // Get the SonarQube Scanner tool and add it to PATH
+                        def scannerHome = tool 'SonarQubeScanner'
+                        sh "export PATH=\${PATH}:${scannerHome}/bin && sonar-scanner -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.go.coverage.reportPaths=coverage.out -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md"
                     }
-
-                    // Verify coverage file exists
-                    if (!fileExists('coverage.out')) {
-                        echo "Warning: coverage.out file not found. Proceeding without coverage report."
-                    }
-
-                    // Use official SonarCloud scanner Docker image
-                    sh """
-                        echo "Starting SonarCloud analysis with Docker..."
-                        docker run --rm \
-                            -v \${WORKSPACE}:/usr/src \
-                            --network host \
-                            sonarsource/sonarcloud-quality-gate:latest \
-                            -Dsonar.login=\${SONAR_TOKEN} \
-                            -Dsonar.organization=wm-demo \
-                            -Dsonar.projectKey=wm-demo-hello-webapp-golang \
-                            -Dsonar.sources=/usr/src \
-                            -Dsonar.go.coverage.reportPaths=/usr/src/coverage.out \
-                            -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md \
-                            -Dsonar.host.url=https://sonarcloud.io \
-                            -Dsonar.verbose=true
-                    """
                 }
             }
         }
-
 
         stage('Build') {
             steps {
@@ -104,10 +57,10 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+     stage('Build Docker Image') {
            steps {
                script {
-                   sh 'docker build -t minhtrang2106/hellogo .'
+                   sh 'docker build -t dab8106/hellogo .'
                }
            }
        }
@@ -118,7 +71,7 @@ pipeline {
                    withCredentials([usernamePassword(credentialsId: 'DOCKER_REGISTRY_CREDENTIALS_ID', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                        sh """
                            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-                           docker push minhtrang2106/hellogo
+                           docker push dab8106/hellogo
                        """
                    }
                }
