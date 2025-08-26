@@ -30,47 +30,23 @@ pipeline {
             }
         }
 
-        stage('Install SonarScanner') {
+        stage('Verify Docker') {
             steps {
                 script {
                     sh '''
-                        # Check if required tools are available
-                        if ! command -v curl >/dev/null 2>&1; then
-                            echo "Error: curl is not available. Please install curl or use a different Jenkins agent."
+                        # Check if Docker is available
+                        if ! command -v docker >/dev/null 2>&1; then
+                            echo "Error: Docker is not available. Please ensure Docker is installed and running."
                             exit 1
                         fi
 
-                        if ! command -v unzip >/dev/null 2>&1; then
-                            echo "Error: unzip is not available. Please install unzip or use a different Jenkins agent."
+                        # Verify Docker is running
+                        if ! docker info >/dev/null 2>&1; then
+                            echo "Error: Docker daemon is not running. Please start Docker service."
                             exit 1
                         fi
 
-                        # Download and install SonarScanner
-                        echo "Installing SonarScanner..."
-                        if curl -s -L -o sonar-scanner-cli-4.8.0.2856-linux.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip; then
-                            echo "Download successful"
-                        else
-                            echo "Error: Failed to download SonarScanner"
-                            exit 1
-                        fi
-
-                        if unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip; then
-                            echo "Extraction successful"
-                        else
-                            echo "Error: Failed to extract SonarScanner"
-                            exit 1
-                        fi
-
-                        export PATH=$PATH:$PWD/sonar-scanner-4.8.0.2856-linux/bin
-                        echo "export PATH=\$PATH:\$PWD/sonar-scanner-4.8.0.2856-linux/bin" >> ~/.bashrc
-
-                        # Verify installation
-                        if ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner --version; then
-                            echo "SonarScanner installation verified"
-                        else
-                            echo "Error: SonarScanner installation failed"
-                            exit 1
-                        fi
+                        echo "✅ Docker is available and running"
                     '''
                 }
             }
@@ -96,15 +72,18 @@ pipeline {
                         echo "Warning: coverage.out file not found. Proceeding without coverage report."
                     }
 
-                    // Use direct sonar-scanner command with SonarCloud authentication
+                    // Use official SonarCloud scanner Docker image
                     sh """
-                        echo "Starting SonarCloud analysis..."
-                        ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner \
+                        echo "Starting SonarCloud analysis with Docker..."
+                        docker run --rm \
+                            -v \${WORKSPACE}:/usr/src \
+                            --network host \
+                            sonarsource/sonarcloud-quality-gate:latest \
                             -Dsonar.login=\${SONAR_TOKEN} \
                             -Dsonar.organization=wm-demo \
                             -Dsonar.projectKey=wm-demo-hello-webapp-golang \
-                            -Dsonar.sources=. \
-                            -Dsonar.go.coverage.reportPaths=coverage.out \
+                            -Dsonar.sources=/usr/src \
+                            -Dsonar.go.coverage.reportPaths=/usr/src/coverage.out \
                             -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md \
                             -Dsonar.host.url=https://sonarcloud.io \
                             -Dsonar.verbose=true
