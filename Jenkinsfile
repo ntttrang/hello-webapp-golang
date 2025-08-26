@@ -3,9 +3,8 @@ pipeline {
 
    tools {
        go 'go-1.21.4'
-       // Uncomment the line below if you have SonarQube Scanner tool configured in Jenkins
-       // If not configured, we'll use the withSonarQubeEnv step instead
-       // 'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
+       // SonarQube Scanner tool - this should match the name you configured in Jenkins Global Tool Configuration
+       'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarCloud'
     }
 
     environment {
@@ -35,30 +34,43 @@ pipeline {
         stage('Run SonarQube Analysis') {
             steps {
                 script {
-                    // Method 1: Using withSonarQubeEnv (recommended for SonarCloud)
-                    withSonarQubeEnv('SonarCloud') {
-                        sh 'sonar-scanner -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${SONAR_TOKEN}'
-                    }
-                    
-                    // Alternative Method 2: Direct command if withSonarQubeEnv is not configured
-                    // Uncomment the lines below if Method 1 doesn't work
-                    /*
-                    sh '''
-                        # Download and use sonar-scanner directly
-                        if [ ! -f "sonar-scanner/bin/sonar-scanner" ]; then
-                            wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-                            unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
-                            mv sonar-scanner-4.8.0.2856-linux sonar-scanner
-                        fi
+                    try {
+                        // Method 1: Using withSonarQubeEnv with configured SonarQube Scanner tool
+                        withSonarQubeEnv('SonarCloud') {
+                            // Use the configured sonar-scanner from tools section
+                            sh '''
+                                sonar-scanner \
+                                    -Dsonar.organization=wm-demo-hello-webapp-golang \
+                                    -Dsonar.projectKey=ntttrang_hello-webapp-golang \
+                                    -Dsonar.sources=. \
+                                    -Dsonar.host.url=https://sonarcloud.io \
+                                    -Dsonar.token=${SONAR_TOKEN}
+                            '''
+                        }
+                    } catch (Exception e) {
+                        echo "Method 1 failed: ${e.getMessage()}"
+                        echo "Falling back to Method 2: Direct sonar-scanner download"
                         
-                        ./sonar-scanner/bin/sonar-scanner \
-                            -Dsonar.organization=wm-demo-hello-webapp-golang \
-                            -Dsonar.projectKey=ntttrang_hello-webapp-golang \
-                            -Dsonar.sources=. \
-                            -Dsonar.host.url=https://sonarcloud.io \
-                            -Dsonar.login=${SONAR_TOKEN}
-                    '''
-                    */
+                        // Method 2: Download and use sonar-scanner directly
+                        sh '''
+                            # Download and use sonar-scanner directly
+                            if [ ! -f "sonar-scanner/bin/sonar-scanner" ]; then
+                                echo "Downloading SonarQube Scanner..."
+                                wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+                                unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
+                                mv sonar-scanner-4.8.0.2856-linux sonar-scanner
+                                chmod +x sonar-scanner/bin/sonar-scanner
+                            fi
+                            
+                            echo "Running SonarQube analysis..."
+                            ./sonar-scanner/bin/sonar-scanner \
+                                -Dsonar.organization=wm-demo-hello-webapp-golang \
+                                -Dsonar.projectKey=ntttrang_hello-webapp-golang \
+                                -Dsonar.sources=. \
+                                -Dsonar.host.url=https://sonarcloud.io \
+                                -Dsonar.token=${SONAR_TOKEN}
+                        '''
+                    }
                 }
             }
         }
