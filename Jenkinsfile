@@ -12,14 +12,9 @@ pipeline {
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarCloud'
     }
 
-    // parameters {
-    //     string(name: 'GIT_TAG', defaultValue: 'master', description: 'Git tag or branch to build from')
-    // }
-
-    // Alternative: If you want to disable parameters completely, use this instead:
-    // environment {
-    //     TARGET_BRANCH = 'master'  // Change this to your desired branch/tag
-    // }
+    parameters {
+        string(name: 'GIT_TAG', defaultValue: 'master', description: 'Git tag or branch to build from')
+    }
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
@@ -33,16 +28,13 @@ pipeline {
                     def targetBranch = params.GIT_TAG ?: 'master'
                     echo "Checking out tag/branch: ${targetBranch}"
 
-                    // Always use master branch as default, or the specified branch/tag
+                    // Use the specified branch/tag from parameter
                     git branch: "${targetBranch}",
                         url: 'https://github.com/ntttrang/hello-webapp-golang.git'
 
-                    // Alternative checkout logic (if you disable parameters):
-                    // git branch: "${env.TARGET_BRANCH ?: 'master'}",
-                    //     url: 'https://github.com/ntttrang/hello-webapp-golang.git'
-
                     // Verify what we actually checked out
                     sh 'git branch --show-current && git log --oneline -1'
+                    echo "Successfully checked out: ${targetBranch}"
                 }
             }
         }
