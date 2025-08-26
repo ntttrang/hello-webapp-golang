@@ -260,7 +260,10 @@ EOF
             steps {
                 script {
                     sh '''
-                        ansible-playbook ansible/deploy-container.yaml
+                        echo "=== Ansible Configuration ==="
+                        ansible --version
+                        echo "=== Running Ansible Playbook ==="
+                        ansible-playbook -i localhost, -c local ansible/deploy-container.yaml
                     '''
                 }
             }
