@@ -7,6 +7,7 @@ pipeline {
        // You can configure this in Jenkins Global Tool Configuration
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
        nodejs 'NodeJS-18'
+       docker 'docker'
     }
 
     environment {
