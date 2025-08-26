@@ -25,16 +25,51 @@ pipeline {
         stage('Checkout source code') {
             steps {
                 script {
-                    def targetBranch = params.GIT_TAG ?: 'master'
-                    echo "Checking out tag/branch: ${targetBranch}"
+                    def targetRef = params.GIT_TAG ?: 'master'
+                    echo "Checking out tag/branch: ${targetRef}"
 
-                    // Use the specified branch/tag from parameter
-                    git branch: "${targetBranch}",
-                        url: 'https://github.com/ntttrang/hello-webapp-golang.git'
+                    // Checkout the repository first
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/master"]],
+                        extensions: [
+                            [$class: 'CloneOption', depth: 0, noTags: false, shallow: false]
+                        ],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/ntttrang/hello-webapp-golang.git'
+                        ]]
+                    ])
+
+                    // Now checkout the specific tag or branch
+                    sh """
+                        echo "Fetching all tags and branches..."
+                        git fetch --all --tags
+                        
+                        echo "Checking if '${targetRef}' is a tag or branch..."
+                        if git show-ref --tags --quiet --verify -- "refs/tags/${targetRef}"; then
+                            echo "'${targetRef}' is a tag"
+                            git checkout tags/${targetRef}
+                        elif git show-ref --heads --quiet --verify -- "refs/heads/${targetRef}" || git show-ref --remotes --quiet --verify -- "refs/remotes/origin/${targetRef}"; then
+                            echo "'${targetRef}' is a branch"
+                            git checkout ${targetRef}
+                        else
+                            echo "Trying to checkout '${targetRef}' directly..."
+                            git checkout ${targetRef}
+                        fi
+                    """
 
                     // Verify what we actually checked out
-                    sh 'git branch --show-current && git log --oneline -1'
-                    echo "Successfully checked out: ${targetBranch}"
+                    sh '''
+                        echo "Current HEAD information:"
+                        git log --oneline -1
+                        git describe --tags --always
+                        if git symbolic-ref -q HEAD > /dev/null 2>&1; then
+                            echo "On branch: $(git branch --show-current)"
+                        else
+                            echo "Detached HEAD (likely on a tag)"
+                        fi
+                    '''
+                    echo "Successfully checked out: ${targetRef}"
                 }
             }
         }
