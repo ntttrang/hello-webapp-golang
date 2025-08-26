@@ -3,8 +3,6 @@ pipeline {
 
    tools {
        go 'go-1.21.4'
-       // Add SonarQube Scanner tool - make sure this matches your Jenkins tool configuration
-       // You can configure this in Jenkins Global Tool Configuration
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
        nodejs 'Nodejs-18'
     }
@@ -46,6 +44,15 @@ pipeline {
             }
         }
 
+        // stage('Run SonarQube Analysis - Alternative') {
+        //     steps {
+        //         script {
+        //                 sh './sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner -Dsonar.login=${SONAR_TOKEN} -Dsonar.organization=wm-demo -Dsonar.projectKey=wm-demo-hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
+        //         }
+        //     }
+        // }
+
+
         stage('Build') {
             steps {
                 script {
@@ -57,10 +64,10 @@ pipeline {
             }
         }
 
-     stage('Build Docker Image') {
+        stage('Build Docker Image') {
            steps {
                script {
-                   sh 'docker build -t dab8106/hellogo .'
+                   sh 'docker build -t minhtrang2106/hellogo .'
                }
            }
        }
@@ -71,7 +78,7 @@ pipeline {
                    withCredentials([usernamePassword(credentialsId: 'DOCKER_REGISTRY_CREDENTIALS_ID', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                        sh """
                            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-                           docker push dab8106/hellogo
+                           docker push minhtrang2106/hellogo
                        """
                    }
                }
