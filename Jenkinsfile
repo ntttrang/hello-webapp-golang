@@ -42,8 +42,8 @@ pipeline {
                         sh """
                             export PATH=\${PATH}:${scannerHome}/bin
                             sonar-scanner \
-                                -Dsonar.organization=wm-demo \
-                                -Dsonar.projectKey=wm-demo-hello-webapp-golang \
+                                -Dsonar.organization=wm-demo-hello-webapp-golang \
+                                -Dsonar.projectKey=ntttrang_hello-webapp-golang
                                 -Dsonar.sources=. \
                                 -Dsonar.go.coverage.reportPaths=coverage.out \
                                 -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md
