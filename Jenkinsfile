@@ -7,9 +7,9 @@ pipeline {
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarCloud'
     }
 
-    // parameters {
-    //     string(name: 'GIT_TAG', defaultValue: 'latest', description: 'Git tag or branch to build from')
-    // }
+    parameters {
+        string(name: 'GIT_TAG', defaultValue: 'latest', description: 'Git tag or branch to build from')
+    }
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
