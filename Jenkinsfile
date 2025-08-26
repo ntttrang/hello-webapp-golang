@@ -7,11 +7,31 @@ pipeline {
        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarCloud'
     }
 
+    // parameters {
+    //     string(name: 'GIT_TAG', defaultValue: 'latest', description: 'Git tag or branch to build from')
+    // }
+
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
+        GIT_TAG = "${params.GIT_TAG}"
     }
 
     stages {
+        stage('Checkout source code') {
+            steps {
+                script {
+                    if (env.GIT_TAG == 'latest' || env.GIT_TAG == '') {
+                        // Use default branch when 'latest' is specified
+                        git branch: "master",
+                            url: 'git@github.com:ntttrang/hello-webapp-golang.git'
+                    } else {
+                        // Use specific tag or branch
+                        git branch: "${env.GIT_TAG}",
+                            url: 'git@github.com:ntttrang/hello-webapp-golang.git'
+                    }
+                }
+            }
+        }
         stage('Unit Test') {
             steps {
                 script {
