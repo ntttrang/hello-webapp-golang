@@ -1,16 +1,31 @@
 ---
-- name: Remove and Run Docker Container
+- name: Deploy Docker Container
   hosts: localhost
   connection: local
   become: yes
   tasks:
-    - name: Stop and remove existing container (if it exists)
+    - name: Stop existing container (if running)
       command: docker stop helloapp
       ignore_errors: yes
 
-    - name: Stop and remove existing container (if it exists)
-      command: docker rmi $(docker image ls)
+    - name: Remove existing container (if exists)
+      command: docker rm helloapp
       ignore_errors: yes
 
-    - name: Run a new container
-      command: docker run -itd -p 8085:8080 --name helloapp --rm minhtrang2106/hellogo
+    - name: Remove old image (if exists)
+      command: docker rmi minhtrang2106/hellogo
+      ignore_errors: yes
+
+    - name: Pull latest image from Docker Hub
+      command: docker pull minhtrang2106/hellogo
+
+    - name: Run new container
+      command: docker run -d -p 8080:8080 --name helloapp --restart unless-stopped minhtrang2106/hellogo
+
+    - name: Verify container is running
+      command: docker ps --filter name=helloapp
+      register: container_check
+
+    - name: Show container status
+      debug:
+        msg: "{{ container_check.stdout_lines }}"
