@@ -58,6 +58,12 @@ pipeline {
         }
 
         stage('Build Docker Image') {
+           agent {
+               docker {
+                   image 'docker:dind'
+                   args '--privileged'
+               }
+           }
            steps {
                script {
                    sh 'docker build -t dab8106/hellogo .'
@@ -66,6 +72,12 @@ pipeline {
        }
 
         stage('Push Docker Image') {
+           agent {
+               docker {
+                   image 'docker:dind'
+                   args '--privileged'
+               }
+           }
            steps {
                script {
                    withCredentials([usernamePassword(credentialsId: 'DOCKER_REGISTRY_CREDENTIALS_ID', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
