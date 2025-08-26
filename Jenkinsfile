@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    // Skip default checkout - we'll do it explicitly
+    options {
+        skipDefaultCheckout true
+    }
+
    tools {
        go 'go-1.21.4'
        // SonarQube Scanner tool - this should match the name you configured in Jenkins Global Tool Configuration
@@ -13,21 +18,20 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN') // Reference Jenkins credential ID
-        GIT_TAG = "${params.GIT_TAG}"
     }
 
     stages {
         stage('Checkout source code') {
             steps {
                 script {
-                    echo "GIT_TAG: ${GIT_TAG}"
-                    if (env.GIT_TAG == 'latest' || env.GIT_TAG == '') {
+                    echo "Checking out tag/branch: ${params.GIT_TAG ?: 'latest'}"
+                    if (params.GIT_TAG == 'latest' || params.GIT_TAG == '' || params.GIT_TAG == null) {
                         // Use default branch when 'latest' is specified
                         git branch: "master",
                             url: 'git@github.com:ntttrang/hello-webapp-golang.git'
                     } else {
                         // Use specific tag or branch
-                        git branch: "${env.GIT_TAG}",
+                        git branch: "${params.GIT_TAG}",
                             url: 'git@github.com:ntttrang/hello-webapp-golang.git'
                     }
                 }
