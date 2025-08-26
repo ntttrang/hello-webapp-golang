@@ -30,18 +30,56 @@ pipeline {
             }
         }
 
-        // stage('Run SonarQube Analysis') {
+        stage('Install SonarScanner') {
+            steps {
+                script {
+                    sh '''
+                        # Download and install SonarScanner
+                        echo "Installing SonarScanner..."
+                        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+                        unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
+                        export PATH=$PATH:$PWD/sonar-scanner-4.8.0.2856-linux/bin
+                        echo "export PATH=\$PATH:\$PWD/sonar-scanner-4.8.0.2856-linux/bin" >> ~/.bashrc
+                        # Verify installation
+                        ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner --version
+                    '''
+                }
+            }
+        }
+
+        // stage('Run SonarQube Analysis - Alternative') {
         //     steps {
         //         script {
-        //                 sh '/usr/local/sonar/bin/sonar-scanner -X -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
+        //                 sh './sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner -Dsonar.login=${SONAR_TOKEN} -Dsonar.organization=wm-demo -Dsonar.projectKey=wm-demo-hello-webapp-golang -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io'
         //         }
         //     }
         // }
         stage('Run SonarQube Analysis') {
             steps {
                 script {
+                    // Verify SONAR_TOKEN is available
+                    if (!env.SONAR_TOKEN) {
+                        error("SONAR_TOKEN credential is not available. Please configure it in Jenkins credentials.")
+                    }
+
+                    // Verify coverage file exists
+                    if (!fileExists('coverage.out')) {
+                        echo "Warning: coverage.out file not found. Proceeding without coverage report."
+                    }
+
                     // Use direct sonar-scanner command with SonarCloud authentication
-                    sh "sonar-scanner -Dsonar.login=\${SONAR_TOKEN} -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.go.coverage.reportPaths=coverage.out -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md"
+                    sh """
+                        echo "Starting SonarCloud analysis..."
+                        ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner \
+                            -Dsonar.login=\${SONAR_TOKEN} \
+                            -Dsonar.organization=wm-demo \
+                            -Dsonar.projectKey=wm-demo-hello-webapp-golang \
+                            -Dsonar.sources=. \
+                            -Dsonar.go.coverage.reportPaths=coverage.out \
+                            -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md \
+                            -Dsonar.host.url=https://sonarcloud.io \
+                            -Dsonar.verbose=true
+                    """
                 }
             }
         }
