@@ -13,7 +13,12 @@ pipeline {
     }
 
     // parameters {
-    //     string(name: 'GIT_TAG', defaultValue: 'latest', description: 'Git tag or branch to build from')
+    //     string(name: 'GIT_TAG', defaultValue: 'master', description: 'Git tag or branch to build from')
+    // }
+
+    // Alternative: If you want to disable parameters completely, use this instead:
+    // environment {
+    //     TARGET_BRANCH = 'master'  // Change this to your desired branch/tag
     // }
 
     environment {
@@ -25,18 +30,19 @@ pipeline {
         stage('Checkout source code') {
             steps {
                 script {
-                    echo "Checking out tag/branch: ${params.GIT_TAG ?: 'latest'}"
-                    if (params.GIT_TAG == 'latest' || params.GIT_TAG == '' || params.GIT_TAG == null) {
-                        // Use default branch when 'latest' is specified
-                        git branch: "master",
-                            //credentialsId: 'github-ssh-key',
+                    def targetBranch = params.GIT_TAG ?: 'master'
+                    echo "Checking out tag/branch: ${targetBranch}"
+
+                    // Always use master branch as default, or the specified branch/tag
+                    git branch: "${targetBranch}",
                         url: 'https://github.com/ntttrang/hello-webapp-golang.git'
-                    } else {
-                        // Use specific tag or branch
-                        git branch: "${params.GIT_TAG}",
-                            //credentialsId: 'github-ssh-key',
-                        url: 'https://github.com/ntttrang/hello-webapp-golang.git'
-                    }
+
+                    // Alternative checkout logic (if you disable parameters):
+                    // git branch: "${env.TARGET_BRANCH ?: 'master'}",
+                    //     url: 'https://github.com/ntttrang/hello-webapp-golang.git'
+
+                    // Verify what we actually checked out
+                    sh 'git branch --show-current && git log --oneline -1'
                 }
             }
         }
