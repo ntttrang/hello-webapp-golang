@@ -34,14 +34,43 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        # Check if required tools are available
+                        if ! command -v curl >/dev/null 2>&1; then
+                            echo "Error: curl is not available. Please install curl or use a different Jenkins agent."
+                            exit 1
+                        fi
+
+                        if ! command -v unzip >/dev/null 2>&1; then
+                            echo "Error: unzip is not available. Please install unzip or use a different Jenkins agent."
+                            exit 1
+                        fi
+
                         # Download and install SonarScanner
                         echo "Installing SonarScanner..."
-                        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-                        unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
+                        if curl -s -L -o sonar-scanner-cli-4.8.0.2856-linux.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip; then
+                            echo "Download successful"
+                        else
+                            echo "Error: Failed to download SonarScanner"
+                            exit 1
+                        fi
+
+                        if unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip; then
+                            echo "Extraction successful"
+                        else
+                            echo "Error: Failed to extract SonarScanner"
+                            exit 1
+                        fi
+
                         export PATH=$PATH:$PWD/sonar-scanner-4.8.0.2856-linux/bin
                         echo "export PATH=\$PATH:\$PWD/sonar-scanner-4.8.0.2856-linux/bin" >> ~/.bashrc
+
                         # Verify installation
-                        ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner --version
+                        if ./sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner --version; then
+                            echo "SonarScanner installation verified"
+                        else
+                            echo "Error: SonarScanner installation failed"
+                            exit 1
+                        fi
                     '''
                 }
             }
