@@ -18,9 +18,9 @@ pipeline {
 
     stages {
         stage('Checkout source code') {
-            echo "GIT_TAG: ${GIT_TAG}"
             steps {
                 script {
+                    echo "GIT_TAG: ${GIT_TAG}"
                     if (env.GIT_TAG == 'latest' || env.GIT_TAG == '') {
                         // Use default branch when 'latest' is specified
                         git branch: "master",
