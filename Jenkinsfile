@@ -18,6 +18,7 @@ pipeline {
 
     stages {
         stage('Checkout source code') {
+            echo "GIT_TAG: ${GIT_TAG}"
             steps {
                 script {
                     if (env.GIT_TAG == 'latest' || env.GIT_TAG == '') {
