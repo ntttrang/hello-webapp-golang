@@ -8,7 +8,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'GIT_TAG', defaultValue: 'origin/master', description: 'Git tag or branch to build from')
+        string(name: 'GIT_TAG', defaultValue: 'latest', description: 'Git tag or branch to build from')
     }
 
     environment {
