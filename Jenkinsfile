@@ -3,7 +3,6 @@ pipeline {
 
    tools {
        go 'go-1.21.4'
-       'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarQubeScanner'
        nodejs 'nodejs-24.6.0'
     }
 
@@ -41,12 +40,8 @@ pipeline {
         stage('Run SonarQube Analysis') {
             steps {
                 script {
-                    // Use withSonarQubeEnv for proper integration with SonarCloud
-                    withSonarQubeEnv('SonarCloud') {
-                        // Get the SonarQube Scanner tool and add it to PATH
-                        def scannerHome = tool 'SonarQubeScanner'
-                        sh "export PATH=\${PATH}:${scannerHome}/bin && sonar-scanner -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.go.coverage.reportPaths=coverage.out -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md"
-                    }
+                    // Use direct sonar-scanner command with SonarCloud authentication
+                    sh "sonar-scanner -Dsonar.login=\${SONAR_TOKEN} -Dsonar.organization=wm-demo-hello-webapp-golang -Dsonar.projectKey=ntttrang_hello-webapp-golang -Dsonar.sources=. -Dsonar.go.coverage.reportPaths=coverage.out -Dsonar.exclusions=**/vendor/**,**/ansible/**,**/Jenkinsfile*,**/Dockerfile,**/*.md"
                 }
             }
         }
