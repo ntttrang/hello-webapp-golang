@@ -30,12 +30,12 @@ pipeline {
                         // Use default branch when 'latest' is specified
                         git branch: "master",
                             //credentialsId: 'github-ssh-key',
-                            url: 'git@github.com:ntttrang/hello-webapp-golang.git'
+                        url: 'https://github.com/ntttrang/hello-webapp-golang.git'
                     } else {
                         // Use specific tag or branch
                         git branch: "${params.GIT_TAG}",
                             //credentialsId: 'github-ssh-key',
-                            url: 'git@github.com:ntttrang/hello-webapp-golang.git'
+                        url: 'https://github.com/ntttrang/hello-webapp-golang.git'
                     }
                 }
             }
