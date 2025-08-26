@@ -49,27 +49,96 @@ pipeline {
                         }
                     } catch (Exception e) {
                         echo "Method 1 failed: ${e.getMessage()}"
-                        echo "Falling back to Method 2: Direct sonar-scanner download"
+                        echo "Trying Method 2: Docker-based SonarQube Scanner"
                         
-                        // Method 2: Download and use sonar-scanner directly
-                        sh '''
-                            # Download and use sonar-scanner directly
-                            if [ ! -f "sonar-scanner/bin/sonar-scanner" ]; then
-                                echo "Downloading SonarQube Scanner..."
-                                wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-                                unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
-                                mv sonar-scanner-4.8.0.2856-linux sonar-scanner
-                                chmod +x sonar-scanner/bin/sonar-scanner
-                            fi
+                        try {
+                            // Method 2: Use official SonarQube Scanner Docker image (most reliable)
+                            sh '''
+                                echo "Using Docker-based SonarQube Scanner..."
+                                docker run --rm \
+                                    -v "${PWD}:/usr/src" \
+                                    -w /usr/src \
+                                    sonarsource/sonar-scanner-cli:latest \
+                                    sonar-scanner \
+                                        -Dsonar.organization=wm-demo-hello-webapp-golang \
+                                        -Dsonar.projectKey=ntttrang_hello-webapp-golang \
+                                        -Dsonar.sources=. \
+                                        -Dsonar.host.url=https://sonarcloud.io \
+                                        -Dsonar.token=${SONAR_TOKEN}
+                            '''
+                        } catch (Exception e2) {
+                            echo "Method 2 failed: ${e2.getMessage()}"
+                            echo "Falling back to Method 3: Direct download with multiple fallbacks"
                             
-                            echo "Running SonarQube analysis..."
-                            ./sonar-scanner/bin/sonar-scanner \
-                                -Dsonar.organization=wm-demo-hello-webapp-golang \
-                                -Dsonar.projectKey=ntttrang_hello-webapp-golang \
-                                -Dsonar.sources=. \
-                                -Dsonar.host.url=https://sonarcloud.io \
-                                -Dsonar.token=${SONAR_TOKEN}
-                        '''
+                            // Method 3: Download and use sonar-scanner directly with multiple fallback options
+                            sh '''
+                                # Download and use sonar-scanner directly
+                                if [ ! -f "sonar-scanner/bin/sonar-scanner" ]; then
+                                    echo "Downloading SonarQube Scanner..."
+                                    
+                                    SCANNER_VERSION="4.8.0.2856"
+                                    SCANNER_ZIP="sonar-scanner-cli-${SCANNER_VERSION}-linux.zip"
+                                    DOWNLOAD_URL="https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/${SCANNER_ZIP}"
+                                    
+                                    # Try multiple download methods
+                                    if command -v curl >/dev/null 2>&1; then
+                                        echo "Using curl to download..."
+                                        curl -sL "${DOWNLOAD_URL}" -o "${SCANNER_ZIP}"
+                                    elif command -v wget >/dev/null 2>&1; then
+                                        echo "Using wget to download..."
+                                        wget -q "${DOWNLOAD_URL}"
+                                    else
+                                        echo "Neither curl nor wget available. Trying with Jenkins built-in tools..."
+                                        # Use Java to download if available
+                                        java -version
+                                        cat > download.java << 'EOF'
+import java.io.*;
+import java.net.*;
+import java.nio.channels.*;
+
+public class download {
+    public static void main(String[] args) throws Exception {
+        String url = args[0];
+        String filename = args[1];
+        ReadableByteChannel rbc = Channels.newChannel(new URL(url).openStream());
+        FileOutputStream fos = new FileOutputStream(filename);
+        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+        fos.close();
+        rbc.close();
+    }
+}
+EOF
+                                        javac download.java
+                                        java download "${DOWNLOAD_URL}" "${SCANNER_ZIP}"
+                                        rm download.java download.class
+                                    fi
+                                    
+                                    # Check if download was successful
+                                    if [ ! -f "${SCANNER_ZIP}" ]; then
+                                        echo "Error: Failed to download SonarQube Scanner"
+                                        exit 1
+                                    fi
+                                    
+                                    echo "Extracting SonarQube Scanner..."
+                                    unzip -q "${SCANNER_ZIP}"
+                                    mv "sonar-scanner-${SCANNER_VERSION}-linux" sonar-scanner
+                                    chmod +x sonar-scanner/bin/sonar-scanner
+                                    rm "${SCANNER_ZIP}"
+                                    
+                                    echo "SonarQube Scanner installed successfully!"
+                                else
+                                    echo "SonarQube Scanner already available"
+                                fi
+                                
+                                echo "Running SonarQube analysis..."
+                                ./sonar-scanner/bin/sonar-scanner \
+                                    -Dsonar.organization=wm-demo-hello-webapp-golang \
+                                    -Dsonar.projectKey=ntttrang_hello-webapp-golang \
+                                    -Dsonar.sources=. \
+                                    -Dsonar.host.url=https://sonarcloud.io \
+                                    -Dsonar.token=${SONAR_TOKEN}
+                            '''
+                        }
                     }
                 }
             }
