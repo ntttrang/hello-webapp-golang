@@ -1,6 +1,7 @@
 ---
 - name: Remove and Run Docker Container
-  hosts: webservers
+  hosts: localhost
+  connection: local
   become: yes
   tasks:
     - name: Stop and remove existing container (if it exists)
