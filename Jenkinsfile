@@ -327,7 +327,7 @@ EOF
                         sed -i '/^aws-server/d' ansible/inventory.ini
 
                         # Add the new aws-server entry
-                        sed -i "/^\[aws_servers\]/a aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=ssh-keys/my-keypair" ansible/inventory.ini
+                        sed -i "/^\\[aws_servers\\]/a aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=ssh-keys/my-keypair" ansible/inventory.ini
 
                         echo "Updated inventory file:"
                         cat ansible/inventory.ini
