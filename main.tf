@@ -65,7 +65,7 @@ resource "aws_route_table_association" "public" {
 # Key Pair (you can also create this manually in AWS Console)
 resource "aws_key_pair" "deployer" {
   key_name   = var.key_name
-  public_key = file("~/.ssh/${var.key_name}.pub")  # Make sure this file exists
+  public_key = file("ssh-keys/${var.key_name}.pub")  # SSH public key for EC2 access
   
   tags = {
     Name = "hello-webapp-keypair"

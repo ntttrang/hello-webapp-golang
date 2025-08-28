@@ -238,6 +238,29 @@ EOF
            }
        }
 
+        stage('Generate SSH Keys') {
+            steps {
+                script {
+                    sh '''
+                        echo "=== Generating SSH Keys for AWS EC2 ==="
+                        mkdir -p ssh-keys
+
+                        # Generate SSH key pair for AWS EC2 access
+                        ssh-keygen -t rsa -b 2048 -f ssh-keys/my-keypair -N "" -C "jenkins-generated-key"
+
+                        # Verify keys were generated
+                        ls -la ssh-keys/
+                        echo "SSH public key fingerprint:"
+                        ssh-keygen -l -f ssh-keys/my-keypair.pub
+
+                        # Archive the private key for later use (in production, handle this securely)
+                        echo "=== SSH Keys Generated Successfully ==="
+                    '''
+                }
+                archiveArtifacts artifacts: 'ssh-keys/my-keypair', allowEmptyArchive: false, fingerprint: true
+            }
+        }
+
         stage('Terraform Apply') {
             environment {
                 AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
@@ -246,10 +269,20 @@ EOF
             steps {
                 script {
                     sh '''
+                        echo "=== Running Terraform ==="
                         export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
                         export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+
+                        # Verify SSH key exists
+                        if [ ! -f "ssh-keys/my-keypair.pub" ]; then
+                            echo "ERROR: SSH public key not found!"
+                            exit 1
+                        fi
+
                         terraform init
-                        terraform apply -auto-approve
+                        terraform validate
+                        terraform plan -out=tfplan
+                        terraform apply tfplan
                     '''
                 }
             }
@@ -263,8 +296,8 @@ EOF
                         INSTANCE_IP=$(terraform output -raw instance_public_ip)
                         echo "EC2 Public IP: ${INSTANCE_IP}"
 
-                        # Update inventory file with actual IP
-                        sed -i "s|# aws-server ansible_host=YOUR_EC2_PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/your-keypair.pem|aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/your-keypair.pem|g" ansible/inventory.ini
+                        # Update inventory file with actual IP and SSH key path
+                        sed -i "s|# aws-server ansible_host=YOUR_EC2_PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/your-keypair.pem|aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=ssh-keys/my-keypair|g" ansible/inventory.ini
                         cat ansible/inventory.ini
                     '''
                 }
