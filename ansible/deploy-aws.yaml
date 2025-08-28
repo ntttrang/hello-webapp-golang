@@ -1,0 +1,93 @@
+---
+- name: Deploy Go Web App to AWS EC2
+  hosts: aws_servers
+  become: yes
+  gather_facts: true
+
+  vars:
+    docker_image: minhtrang2106/hellogo
+    container_name: helloapp
+    app_port: 8080
+    host_port: 8080
+
+  tasks:
+    - name: Update system packages
+      yum:
+        name: '*'
+        state: latest
+      when: ansible_distribution == 'Amazon'
+
+    - name: Install Docker
+      yum:
+        name:
+          - docker
+          - python3-pip
+        state: present
+      when: ansible_distribution == 'Amazon'
+
+    - name: Start and enable Docker service
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Install Docker Python library
+      pip:
+        name: docker
+        state: present
+
+    - name: Stop existing container (if running)
+      docker_container:
+        name: "{{ container_name }}"
+        state: stopped
+      ignore_errors: true
+
+    - name: Remove existing container
+      docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      ignore_errors: true
+
+    - name: Pull latest Docker image
+      docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+
+    - name: Run the Go web application container
+      docker_container:
+        name: "{{ container_name }}"
+        image: "{{ docker_image }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "{{ host_port }}:{{ app_port }}"
+        detach: yes
+
+    - name: Wait for application to be ready
+      wait_for:
+        host: localhost
+        port: "{{ host_port }}"
+        timeout: 30
+
+    - name: Verify deployment
+      uri:
+        url: "http://localhost:{{ host_port }}/"
+        return_content: yes
+      register: response
+
+    - name: Display response
+      debug:
+        msg: "Application Response: {{ response.content }}"
+
+    - name: Show deployment status
+      debug:
+        msg:
+          - "Application deployed successfully!"
+          - "Access your app at: http://{{ ansible_default_ipv4.address }}:{{ host_port }}"
+          - "Container Status: Running"

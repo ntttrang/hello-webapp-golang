@@ -238,23 +238,38 @@ EOF
            }
        }
 
-       // stage('Terraform Apply') {
-       //      environment {
-       //          AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
-       //          AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-       //      }
-       //      steps {
-       //          script {
-       //              sh '''
-       //                  export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-       //                  export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-       //                  cd ./terraform
-       //                  terraform init
-       //                  terraform apply -auto-approve
-       //              '''
-       //          }
-       //      }
-       //  }
+        stage('Terraform Apply') {
+            environment {
+                AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+                AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+            }
+            steps {
+                script {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+                        terraform init
+                        terraform apply -auto-approve
+                    '''
+                }
+            }
+        }
+
+        stage('Update Ansible Inventory') {
+            steps {
+                script {
+                    sh '''
+                        # Get Terraform outputs and update inventory
+                        INSTANCE_IP=$(terraform output -raw instance_public_ip)
+                        echo "EC2 Public IP: ${INSTANCE_IP}"
+
+                        # Update inventory file with actual IP
+                        sed -i "s|# aws-server ansible_host=YOUR_EC2_PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/your-keypair.pem|aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/your-keypair.pem|g" ansible/inventory.ini
+                        cat ansible/inventory.ini
+                    '''
+                }
+            }
+        }
 
         stage('Run Ansible Playbook') {
             steps {
@@ -262,8 +277,8 @@ EOF
                     sh '''
                         echo "=== Ansible Configuration ==="
                         ansible --version
-                        echo "=== Running Ansible Playbook ==="
-                        ansible-playbook -i localhost, -c local ansible/deploy-container.yaml
+                        echo "=== Running Ansible Playbook for AWS ==="
+                        ansible-playbook -i ansible/inventory.ini ansible/deploy-aws.yaml
                     '''
                 }
             }
