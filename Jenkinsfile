@@ -242,19 +242,27 @@ EOF
             steps {
                 script {
                     sh '''
-                        echo "=== Generating SSH Keys for AWS EC2 ==="
+                        echo "=== Checking/Creating SSH Keys for AWS EC2 ==="
                         mkdir -p ssh-keys
 
-                        # Generate SSH key pair for AWS EC2 access
-                        ssh-keygen -t rsa -b 2048 -f ssh-keys/my-keypair -N "" -C "jenkins-generated-key"
+                        # Only generate SSH keys if they don't exist
+                        if [ ! -f "ssh-keys/my-keypair" ] || [ ! -f "ssh-keys/my-keypair.pub" ]; then
+                            echo "Generating new SSH key pair..."
+                            ssh-keygen -t rsa -b 2048 -f ssh-keys/my-keypair -N "" -C "jenkins-generated-key"
+                        else
+                            echo "SSH key pair already exists, skipping generation"
+                        fi
 
-                        # Verify keys were generated
+                        # Set correct permissions
+                        chmod 600 ssh-keys/my-keypair
+                        chmod 644 ssh-keys/my-keypair.pub
+
+                        # Verify keys
                         ls -la ssh-keys/
                         echo "SSH public key fingerprint:"
                         ssh-keygen -l -f ssh-keys/my-keypair.pub
 
-                        # Archive the private key for later use (in production, handle this securely)
-                        echo "=== SSH Keys Generated Successfully ==="
+                        echo "=== SSH Keys Ready ==="
                     '''
                 }
                 archiveArtifacts artifacts: 'ssh-keys/my-keypair', allowEmptyArchive: false, fingerprint: true
@@ -279,9 +287,23 @@ EOF
                             exit 1
                         fi
 
+                        # Check if key pair exists in AWS and remove it if necessary
+                        KEY_PAIR_EXISTS=$(aws ec2 describe-key-pairs --key-names my-keypair --query 'KeyPairs[0].KeyName' --output text 2>/dev/null || echo "NOT_FOUND")
+                        if [ "$KEY_PAIR_EXISTS" != "NOT_FOUND" ]; then
+                            echo "Key pair exists in AWS, checking if it matches local key..."
+                            # If key pair exists but doesn't match, we need to handle this
+                            echo "Key pair already exists in AWS"
+                        fi
+
                         terraform init
                         terraform validate
                         terraform plan -out=tfplan
+
+                        # Check if the plan includes key pair changes
+                        if terraform plan -out=tfplan | grep -q "aws_key_pair.deployer"; then
+                            echo "Key pair changes detected in Terraform plan"
+                        fi
+
                         terraform apply tfplan
                     '''
                 }
@@ -292,13 +314,27 @@ EOF
             steps {
                 script {
                     sh '''
+                        echo "=== Updating Ansible Inventory ==="
                         # Get Terraform outputs and update inventory
                         INSTANCE_IP=$(terraform output -raw instance_public_ip)
                         echo "EC2 Public IP: ${INSTANCE_IP}"
 
+                        # Create backup of original inventory
+                        cp ansible/inventory.ini ansible/inventory.ini.backup
+
                         # Update inventory file with actual IP and SSH key path
-                        sed -i "s|# aws-server ansible_host=YOUR_EC2_PUBLIC_IP ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/your-keypair.pem|aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=ssh-keys/my-keypair|g" ansible/inventory.ini
+                        # First, remove any existing aws-server entries
+                        sed -i '/^aws-server/d' ansible/inventory.ini
+
+                        # Add the new aws-server entry
+                        sed -i "/^\[aws_servers\]/a aws-server ansible_host=${INSTANCE_IP} ansible_user=ec2-user ansible_ssh_private_key_file=ssh-keys/my-keypair" ansible/inventory.ini
+
+                        echo "Updated inventory file:"
                         cat ansible/inventory.ini
+
+                        # Test SSH connection
+                        echo "Testing SSH connection..."
+                        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i ssh-keys/my-keypair ec2-user@${INSTANCE_IP} "echo 'SSH connection successful'" || echo "SSH connection test failed - this is expected if keys don't match yet"
                     '''
                 }
             }

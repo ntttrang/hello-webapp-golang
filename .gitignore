@@ -1,0 +1,37 @@
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# SSH Keys (Security - never commit private keys!)
+# Note: In CI/CD, SSH keys are generated during pipeline execution
+ssh-keys/*.pem
+ssh-keys/*.key
+ssh-keys/my-keypair
+# Allow public keys to be committed if needed for development
+# ssh-keys/*.pub
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
