@@ -62,14 +62,10 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# Key Pair (you can also create this manually in AWS Console)
-resource "aws_key_pair" "deployer" {
-  key_name   = var.key_name
-  public_key = file("ssh-keys/${var.key_name}.pub")  # SSH public key for EC2 access
-  
-  tags = {
-    Name = "hello-webapp-keypair"
-  }
+# Key Pair (reference existing key pair instead of creating new one)
+data "aws_key_pair" "deployer" {
+  key_name = var.key_name
+  include_public_key = true
 }
 
 # Security Group
@@ -109,7 +105,7 @@ resource "aws_security_group" "web" {
 resource "aws_instance" "web" {
   ami           = "ami-0c7217cdde317cfec"  # Amazon Linux 2 AMI (us-east-1)
   instance_type = var.instance_type
-  key_name      = aws_key_pair.deployer.key_name
+  key_name      = data.aws_key_pair.deployer.key_name
 
   vpc_security_group_ids = [aws_security_group.web.id]
   subnet_id              = aws_subnet.public.id
